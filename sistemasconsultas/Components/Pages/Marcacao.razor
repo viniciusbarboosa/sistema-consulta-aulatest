@@ -1,0 +1,555 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Authorization
+@using sistemasconsultas.Data
+@using sistemasconsultas.Models
+@using sistemasconsultas.Services
+@attribute [Authorize]
+@inject ConsultaService ConsultaServico
+@inject MedicoService MedicoServico
+@inject PacienteService PacienteServico
+@inject Relogio Relogio
+
+<PageTitle>Marcação</PageTitle>
+
+<div class="container-fluid pt-4 px-4">
+
+    @* ===== Cartões de resumo ===== *@
+    @if (resumo is not null)
+    {
+        <div class="row g-4 mb-4">
+            <div class="col-sm-6 col-xl-3">
+                <div class="bg-light rounded d-flex align-items-center justify-content-between p-4">
+                    <i class="fa fa-calendar-alt fa-3x text-primary"></i>
+                    <div class="ms-3 text-end">
+                        <p class="mb-2">Consultas hoje</p>
+                        <h6 class="mb-0">@resumo.ConsultasHoje</h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="bg-light rounded d-flex align-items-center justify-content-between p-4">
+                    <i class="fa fa-clock fa-3x text-primary"></i>
+                    <div class="ms-3 text-end">
+                        <p class="mb-2">Próximas agendadas</p>
+                        <h6 class="mb-0">@resumo.ConsultasFuturas</h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="bg-light rounded d-flex align-items-center justify-content-between p-4">
+                    <i class="fa fa-users fa-3x text-primary"></i>
+                    <div class="ms-3 text-end">
+                        <p class="mb-2">Pacientes</p>
+                        <h6 class="mb-0">@resumo.Pacientes</h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="bg-light rounded d-flex align-items-center justify-content-between p-4">
+                    <i class="fa fa-user-md fa-3x text-primary"></i>
+                    <div class="ms-3 text-end">
+                        <p class="mb-2">Médicos</p>
+                        <h6 class="mb-0">@resumo.Medicos</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="bg-light rounded p-4">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h5 class="mb-1">Marcação de consultas</h5>
+                <span class="text-muted">Agende, reagende e acompanhe as consultas.</span>
+            </div>
+            <button type="button" class="btn btn-primary" disabled="@(!PodeAgendar)" @onclick="NovaConsulta">
+                <i class="fa fa-plus me-2"></i>Nova consulta
+            </button>
+        </div>
+
+        @if (!PodeAgendar)
+        {
+            <div class="alert alert-info" role="alert">
+                Para marcar consultas, cadastre pelo menos um <a href="medicos">médico</a> e um <a href="pacientes">paciente</a>.
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(mensagemSucesso))
+        {
+            <div class="alert alert-success alert-dismissible" role="alert">
+                @mensagemSucesso
+                <button type="button" class="btn-close" aria-label="Fechar" @onclick="LimparMensagens"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                @mensagemErro
+                <button type="button" class="btn-close" aria-label="Fechar" @onclick="LimparMensagens"></button>
+            </div>
+        }
+
+        @* ===== Filtros ===== *@
+        <div class="row g-3 mb-4">
+            <div class="col-md-4 col-lg-3">
+                <label class="form-label small mb-1" for="filtroData">Data</label>
+                <input id="filtroData" type="date" class="form-control" @bind="filtroData" @bind:format="yyyy-MM-dd" @bind:after="CarregarConsultasAsync" />
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <label class="form-label small mb-1" for="filtroMedico">Médico</label>
+                <select id="filtroMedico" class="form-select" @bind="filtroMedicoId" @bind:after="CarregarConsultasAsync">
+                    <option value="">Todos os médicos</option>
+                    @foreach (var m in medicos)
+                    {
+                        <option value="@m.Id">@m.Nome</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <label class="form-label small mb-1" for="filtroStatus">Status</label>
+                <select id="filtroStatus" class="form-select" @bind="filtroStatus" @bind:after="CarregarConsultasAsync">
+                    <option value="">Todos os status</option>
+                    <option value="Agendada">Agendada</option>
+                    <option value="Concluida">Concluída</option>
+                    <option value="Cancelada">Cancelada</option>
+                </select>
+            </div>
+            <div class="col-lg-3 d-flex align-items-end gap-2">
+                <button type="button" class="btn btn-outline-primary" @onclick="FiltrarHojeAsync">Hoje</button>
+                <button type="button" class="btn btn-light" @onclick="LimparFiltrosAsync">Todas as datas</button>
+            </div>
+        </div>
+
+        @* ===== Lista ===== *@
+        @if (consultas is null)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-3 mb-0 text-muted">Carregando...</p>
+            </div>
+        }
+        else if (consultas.Count == 0)
+        {
+            <div class="text-center py-5">
+                <i class="fa fa-calendar-check fa-3x text-primary mb-3"></i>
+                <h6>Nenhuma consulta encontrada</h6>
+                <p class="text-muted mb-0">Ajuste os filtros ou clique em "Nova consulta".</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Data e horário</th>
+                            <th scope="col">Paciente</th>
+                            <th scope="col">Médico</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in consultas)
+                        {
+                            <tr>
+                                <td class="text-nowrap">
+                                    <div>@c.Inicio.ToString("dd/MM/yyyy")</div>
+                                    <small class="text-muted">@c.Inicio.ToString("HH:mm") - @c.Fim.ToString("HH:mm")</small>
+                                </td>
+                                <td>@c.Paciente.Nome</td>
+                                <td>
+                                    <div>@c.Medico.Nome</div>
+                                    <small class="text-muted">@c.Medico.Especialidade</small>
+                                </td>
+                                <td>
+                                    <span class="badge @ClasseStatus(c.Status)">@RotuloStatus(c.Status)</span>
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    @if (c.Status == StatusConsulta.Agendada)
+                                    {
+                                        @if (c.Inicio <= Relogio.Agora)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Concluir" @onclick="() => ConcluirAsync(c.Id)">
+                                                <i class="fa fa-check"></i>
+                                            </button>
+                                        }
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Reagendar / editar" @onclick="() => EditarAsync(c.Id)">
+                                            <i class="fa fa-pencil-alt"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Cancelar consulta" @onclick="() => PedirCancelamento(c)">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@* ===== Modal: nova consulta / reagendar (IGUAL AO DE MÉDICOS) ===== *@
+@if (mostrarFormulario)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <EditForm Model="form" OnValidSubmit="SalvarAsync">
+                    <DataAnnotationsValidator />
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fa fa-calendar-check text-primary me-2"></i>
+                            @(form.Id == 0 ? "Nova consulta" : "Reagendar consulta")
+                        </h5>
+                        <button type="button" class="btn-close" aria-label="Fechar" @onclick="FecharFormulario"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(erroFormulario))
+                        {
+                            <div class="alert alert-danger" role="alert">@erroFormulario</div>
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="medico">Médico</label>
+                                <InputSelect id="medico" class="form-select" @bind-Value="form.MedicoId">
+                                    <option value="">Selecione...</option>
+                                    @foreach (var m in medicos)
+                                    {
+                                        <option value="@m.Id">@m.Nome - @m.Especialidade</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="() => form.MedicoId" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="paciente">Paciente</label>
+                                <InputSelect id="paciente" class="form-select" @bind-Value="form.PacienteId">
+                                    <option value="">Selecione...</option>
+                                    @foreach (var p in pacientes)
+                                    {
+                                        <option value="@p.Id">@p.Nome</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="() => form.PacienteId" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="data">Data</label>
+                                <InputDate id="data" class="form-control" @bind-Value="form.Data" min="@Relogio.Hoje.ToString("yyyy-MM-dd")" />
+                                <ValidationMessage For="() => form.Data" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="hora">Horário</label>
+                                <InputDate id="hora" Type="InputDateType.Time" class="form-control" @bind-Value="form.Hora" />
+                                <ValidationMessage For="() => form.Hora" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="duracao">Duração</label>
+                                <InputSelect id="duracao" class="form-select" @bind-Value="form.DuracaoMinutos">
+                                    <option value="15">15 minutos</option>
+                                    <option value="30">30 minutos</option>
+                                    <option value="45">45 minutos</option>
+                                    <option value="60">1 hora</option>
+                                    <option value="90">1h30</option>
+                                </InputSelect>
+                                <ValidationMessage For="() => form.DuracaoMinutos" class="text-danger small" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" for="observacoes">Observações</label>
+                                <InputTextArea id="observacoes" class="form-control" rows="3" @bind-Value="form.Observacoes" maxlength="500" />
+                                <ValidationMessage For="() => form.Observacoes" class="text-danger small" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" @onclick="FecharFormulario">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" disabled="@salvando">
+                            @if (salvando)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-check me-2"></i>
+                            }
+                            Salvar
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@* ===== Modal: confirmar cancelamento (IGUAL AO DE MÉDICOS) ===== *@
+@if (consultaParaCancelar is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa fa-exclamation-triangle text-danger me-2"></i>Cancelar consulta
+                    </h5>
+                    <button type="button" class="btn-close" aria-label="Fechar" @onclick="DesistirDoCancelamento"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="mb-1">
+                        Cancelar a consulta de <strong>@consultaParaCancelar.Paciente.Nome</strong>
+                        com <strong>@consultaParaCancelar.Medico.Nome</strong>
+                        em @consultaParaCancelar.Inicio.ToString("dd/MM/yyyy") às @consultaParaCancelar.Inicio.ToString("HH:mm")?
+                    </p>
+                    <p class="text-muted mb-0">O horário fica livre para novas marcações.</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" @onclick="DesistirDoCancelamento">Voltar</button>
+                    <button type="button" class="btn btn-danger" disabled="@cancelando" @onclick="ConfirmarCancelamentoAsync">
+                        <i class="fa fa-times me-2"></i>Cancelar consulta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Medico> medicos = new();
+    private List<Paciente> pacientes = new();
+    private List<Consulta>? consultas;
+    private ResumoPainel? resumo;
+
+    private DateOnly? filtroData;
+    private int? filtroMedicoId;
+    private string filtroStatus = "";
+
+    private ConsultaForm form = new();
+    private Consulta? consultaParaCancelar;
+    private bool mostrarFormulario;
+    private bool salvando;
+    private bool cancelando;
+    private string? mensagemSucesso;
+    private string? mensagemErro;
+    private string? erroFormulario;
+
+    private bool PodeAgendar => medicos.Count > 0 && pacientes.Count > 0;
+
+    private static string RotuloStatus(StatusConsulta status) => status switch
+    {
+        StatusConsulta.Agendada => "Agendada",
+        StatusConsulta.Concluida => "Concluída",
+        StatusConsulta.Cancelada => "Cancelada",
+        _ => status.ToString()
+    };
+
+    private static string ClasseStatus(StatusConsulta status) => status switch
+    {
+        StatusConsulta.Agendada => "bg-primary",
+        StatusConsulta.Concluida => "bg-secondary",
+        StatusConsulta.Cancelada => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        filtroData = Relogio.Hoje;
+
+        medicos = await MedicoServico.ListarAsync();
+        pacientes = await PacienteServico.ListarAsync();
+
+        await AtualizarTudoAsync();
+    }
+
+    private async Task AtualizarTudoAsync()
+    {
+        resumo = await ConsultaServico.ObterResumoAsync();
+        await CarregarConsultasAsync();
+    }
+
+    private async Task CarregarConsultasAsync()
+    {
+        StatusConsulta? status = Enum.TryParse<StatusConsulta>(filtroStatus, out var valor)
+            ? valor
+            : (StatusConsulta?)null;
+
+        consultas = await ConsultaServico.ListarAsync(filtroData, filtroMedicoId, status);
+    }
+
+    private async Task FiltrarHojeAsync()
+    {
+        filtroData = Relogio.Hoje;
+        await CarregarConsultasAsync();
+    }
+
+    private async Task LimparFiltrosAsync()
+    {
+        filtroData = null;
+        filtroMedicoId = null;
+        filtroStatus = "";
+        await CarregarConsultasAsync();
+    }
+
+    private void LimparMensagens()
+    {
+        mensagemSucesso = null;
+        mensagemErro = null;
+    }
+
+    private void NovaConsulta()
+    {
+        LimparMensagens();
+        erroFormulario = null;
+        form = new ConsultaForm { Data = Relogio.Hoje };
+        mostrarFormulario = true;
+    }
+
+    private async Task EditarAsync(int id)
+    {
+        LimparMensagens();
+        erroFormulario = null;
+
+        var consulta = await ConsultaServico.ObterAsync(id);
+        if (consulta is null)
+        {
+            mensagemErro = "Consulta não encontrada.";
+            await AtualizarTudoAsync();
+            return;
+        }
+
+        form = new ConsultaForm
+        {
+            Id = consulta.Id,
+            MedicoId = consulta.MedicoId,
+            PacienteId = consulta.PacienteId,
+            Data = DateOnly.FromDateTime(consulta.Inicio),
+            Hora = TimeOnly.FromDateTime(consulta.Inicio),
+            DuracaoMinutos = (int)(consulta.Fim - consulta.Inicio).TotalMinutes,
+            Observacoes = consulta.Observacoes
+        };
+
+        mostrarFormulario = true;
+    }
+
+    private void FecharFormulario()
+    {
+        form = new ConsultaForm();
+        erroFormulario = null;
+        mostrarFormulario = false;
+    }
+
+    private async Task SalvarAsync()
+    {
+        salvando = true;
+        erroFormulario = null;
+        LimparMensagens();
+
+        try
+        {
+            var novo = form.Id == 0;
+            var erro = novo
+                ? await ConsultaServico.AgendarAsync(form)
+                : await ConsultaServico.AtualizarAsync(form);
+
+            if (erro is not null)
+            {
+                erroFormulario = erro;
+                return;
+            }
+
+            mensagemSucesso = novo
+                ? "Consulta agendada com sucesso."
+                : "Consulta atualizada com sucesso.";
+
+            form = new ConsultaForm();
+            mostrarFormulario = false;
+            await AtualizarTudoAsync();
+        }
+        catch (Exception)
+        {
+            erroFormulario = "Não foi possível salvar. Tente novamente.";
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+
+    private async Task ConcluirAsync(int id)
+    {
+        LimparMensagens();
+
+        try
+        {
+            var erro = await ConsultaServico.ConcluirAsync(id);
+
+            if (erro is null)
+                mensagemSucesso = "Consulta concluída.";
+            else
+                mensagemErro = erro;
+
+            await AtualizarTudoAsync();
+        }
+        catch (Exception)
+        {
+            mensagemErro = "Não foi possível concluir a consulta. Tente novamente.";
+        }
+    }
+
+    private void PedirCancelamento(Consulta consulta)
+    {
+        LimparMensagens();
+        consultaParaCancelar = consulta;
+    }
+
+    private void DesistirDoCancelamento()
+    {
+        consultaParaCancelar = null;
+    }
+
+    private async Task ConfirmarCancelamentoAsync()
+    {
+        if (consultaParaCancelar is null)
+            return;
+
+        cancelando = true;
+        LimparMensagens();
+
+        try
+        {
+            var erro = await ConsultaServico.CancelarAsync(consultaParaCancelar.Id);
+
+            if (erro is null)
+                mensagemSucesso = "Consulta cancelada.";
+            else
+                mensagemErro = erro;
+        }
+        catch (Exception)
+        {
+            mensagemErro = "Não foi possível cancelar a consulta. Tente novamente.";
+        }
+        finally
+        {
+            cancelando = false;
+            consultaParaCancelar = null;
+        }
+
+        await AtualizarTudoAsync();
+    }
+}

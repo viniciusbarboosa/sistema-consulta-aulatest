@@ -1,0 +1,41 @@
+﻿<nav class="app-sidebar" aria-label="Menu principal">
+
+    @foreach (var item in Principais)
+    {
+        <NavLink class="app-nav-item" href="@item.Href" title="@item.Texto"
+                 Match="@(item.Exato ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+            <i class="bi @item.Icone"></i>
+            <span>@item.Texto</span>
+        </NavLink>
+    }
+
+    @if (Secundarios.Length > 0)
+    {
+        <div class="app-sidebar-fim">
+            @foreach (var item in Secundarios)
+            {
+                <NavLink class="app-nav-item" href="@item.Href" title="@item.Texto"
+                         Match="@(item.Exato ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                    <i class="bi @item.Icone"></i>
+                    <span>@item.Texto</span>
+                </NavLink>
+            }
+        </div>
+    }
+
+</nav>
+
+@code {
+    private sealed record ItemMenu(string Href, string Icone, string Texto, bool Exato = false);
+
+    // Itens do topo do menu. Para adicionar uma tela, acrescente uma linha aqui.
+    private static readonly ItemMenu[] Principais =
+    [
+        new("", "bi-calendar2-check", "Marcação", Exato: true),
+        new("pacientes", "bi-people", "Pacientes"),
+        new("medicos", "bi-person-badge", "Médicos"),
+    ];
+
+    // Itens no rodapé do menu (por exemplo Configurações ou Ajuda). Vazio por enquanto.
+    private static readonly ItemMenu[] Secundarios = [];
+}

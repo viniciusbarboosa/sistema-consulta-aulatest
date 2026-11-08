@@ -1,0 +1,400 @@
+﻿@page "/pacientes"
+@using Microsoft.AspNetCore.Authorization
+@using sistemasconsultas.Data
+@using sistemasconsultas.Services
+@attribute [Authorize]
+@inject PacienteService PacienteServico
+@inject Relogio Relogio
+
+<PageTitle>Pacientes</PageTitle>
+
+<div class="container-fluid pt-4 px-4">
+    <div class="bg-light rounded p-4">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h5 class="mb-1">Pacientes</h5>
+                <span class="text-muted">Cadastre e gerencie os seus pacientes.</span>
+            </div>
+            <button type="button" class="btn btn-primary" @onclick="NovoPaciente">
+                <i class="fa fa-plus me-2"></i>Novo paciente
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(mensagemSucesso))
+        {
+            <div class="alert alert-success alert-dismissible" role="alert">
+                @mensagemSucesso
+                <button type="button" class="btn-close" aria-label="Fechar" @onclick="LimparMensagens"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                @mensagemErro
+                <button type="button" class="btn-close" aria-label="Fechar" @onclick="LimparMensagens"></button>
+            </div>
+        }
+
+        @if (pacientes is null)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-3 mb-0 text-muted">Carregando...</p>
+            </div>
+        }
+        else if (pacientes.Count == 0)
+        {
+            <div class="text-center py-5">
+                <i class="fa fa-users fa-3x text-primary mb-3"></i>
+                <h6>Nenhum paciente cadastrado ainda</h6>
+                <p class="text-muted">Clique em "Novo paciente" para cadastrar o primeiro.</p>
+            </div>
+        }
+        else
+        {
+            var lista = PacientesFiltrados.ToList();
+
+            <div class="row mb-3">
+                <div class="col-md-6 col-lg-4">
+                    <input type="search" class="form-control border-0" placeholder="Buscar por nome, CPF ou e-mail"
+                           @bind="busca" @bind:event="oninput" maxlength="200" />
+                </div>
+                <div class="col-md-6 col-lg-8 d-flex align-items-center justify-content-md-end mt-2 mt-md-0">
+                    <span class="text-muted small">@lista.Count de @pacientes.Count paciente(s)</span>
+                </div>
+            </div>
+
+            @if (lista.Count == 0)
+            {
+                <div class="text-center py-4 text-muted">Nenhum paciente encontrado para essa busca.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Paciente</th>
+                                <th scope="col">CPF</th>
+                                <th scope="col">Nascimento</th>
+                                <th scope="col">Telefone</th>
+                                <th scope="col">E-mail</th>
+                                <th scope="col" class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in lista)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold me-3" style="width: 36px; height: 36px;">
+                                                @Inicial(p.Nome)
+                                            </div>
+                                            <span>@p.Nome</span>
+                                        </div>
+                                    </td>
+                                    <td>@Cpf.Formatar(p.Cpf)</td>
+                                    <td>@DescreverNascimento(p)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(p.Telefone) ? "-" : p.Telefone)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(p.Email) ? "-" : p.Email)</td>
+                                    <td class="text-end text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Editar" @onclick="() => EditarAsync(p.Id)">
+                                            <i class="fa fa-pencil-alt"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir" @onclick="() => PedirExclusao(p)">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@* ===== Modal: cadastrar / editar ===== *@
+@if (mostrarFormulario)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <EditForm Model="paciente" OnValidSubmit="SalvarAsync">
+                    <DataAnnotationsValidator />
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fa fa-users text-primary me-2"></i>
+                            @(paciente.Id == 0 ? "Novo paciente" : "Editar paciente")
+                        </h5>
+                        <button type="button" class="btn-close" aria-label="Fechar" @onclick="FecharFormulario"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(erroFormulario))
+                        {
+                            <div class="alert alert-danger" role="alert">@erroFormulario</div>
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label" for="nome">Nome</label>
+                                <InputText id="nome" class="form-control" @bind-Value="paciente.Nome" maxlength="200" />
+                                <ValidationMessage For="() => paciente.Nome" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="cpf">CPF</label>
+                                <InputText id="cpf" class="form-control" @bind-Value="paciente.Cpf" placeholder="000.000.000-00" maxlength="14" />
+                                <ValidationMessage For="() => paciente.Cpf" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="nascimento">Data de nascimento</label>
+                                <InputDate id="nascimento" class="form-control" @bind-Value="paciente.DataNascimento" max="@Relogio.Hoje.ToString("yyyy-MM-dd")" />
+                                <ValidationMessage For="() => paciente.DataNascimento" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="telefone">Telefone</label>
+                                <InputText id="telefone" class="form-control" @bind-Value="paciente.Telefone" maxlength="200" />
+                                <ValidationMessage For="() => paciente.Telefone" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="email">E-mail</label>
+                                <InputText id="email" class="form-control" @bind-Value="paciente.Email" maxlength="200" />
+                                <ValidationMessage For="() => paciente.Email" class="text-danger small" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" @onclick="FecharFormulario">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" disabled="@salvando">
+                            @if (salvando)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-check me-2"></i>
+                            }
+                            Salvar
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@* ===== Modal: confirmar exclusão ===== *@
+@if (pacienteParaExcluir is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa fa-exclamation-triangle text-danger me-2"></i>Excluir paciente
+                    </h5>
+                    <button type="button" class="btn-close" aria-label="Fechar" @onclick="CancelarExclusao"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="mb-1">Tem certeza que deseja excluir <strong>@pacienteParaExcluir.Nome</strong>?</p>
+                    <p class="text-muted mb-0">Essa ação não pode ser desfeita.</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" @onclick="CancelarExclusao">Cancelar</button>
+                    <button type="button" class="btn btn-danger" disabled="@excluindo" @onclick="ConfirmarExclusaoAsync">
+                        <i class="fa fa-trash me-2"></i>Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Paciente>? pacientes;
+    private Paciente paciente = new();
+    private Paciente? pacienteParaExcluir;
+    private bool mostrarFormulario;
+    private bool salvando;
+    private bool excluindo;
+    private string busca = "";
+    private string? mensagemSucesso;
+    private string? mensagemErro;
+    private string? erroFormulario;
+
+    private IEnumerable<Paciente> PacientesFiltrados
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(busca))
+                return pacientes!;
+
+            var termo = busca.Trim();
+            var digitos = Cpf.Normalizar(termo);
+
+            return pacientes!.Where(p =>
+                p.Nome.Contains(termo, StringComparison.OrdinalIgnoreCase) ||
+                (digitos.Length > 0 && p.Cpf.Contains(digitos)) ||
+                (p.Email?.Contains(termo, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+    }
+
+    private static string Inicial(string nome) =>
+        string.IsNullOrWhiteSpace(nome) ? "?" : char.ToUpper(nome.Trim()[0]).ToString();
+
+    private string DescreverNascimento(Paciente p)
+    {
+        if (p.DataNascimento is null)
+            return "-";
+
+        var nascimento = p.DataNascimento.Value;
+        var hoje = Relogio.Hoje;
+
+        var idade = hoje.Year - nascimento.Year;
+        if (hoje < nascimento.AddYears(idade))
+            idade--;
+
+        return $"{nascimento:dd/MM/yyyy} ({idade} anos)";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarAsync();
+    }
+
+    private async Task CarregarAsync()
+    {
+        pacientes = await PacienteServico.ListarAsync();
+    }
+
+    private void LimparMensagens()
+    {
+        mensagemSucesso = null;
+        mensagemErro = null;
+    }
+
+    private void NovoPaciente()
+    {
+        LimparMensagens();
+        erroFormulario = null;
+        paciente = new Paciente();
+        mostrarFormulario = true;
+    }
+
+    private async Task EditarAsync(int id)
+    {
+        LimparMensagens();
+        erroFormulario = null;
+
+        var encontrado = await PacienteServico.ObterAsync(id);
+        if (encontrado is null)
+        {
+            mensagemErro = "Paciente não encontrado.";
+            await CarregarAsync();
+            return;
+        }
+
+        // Mostra o CPF formatado no campo
+        encontrado.Cpf = Cpf.Formatar(encontrado.Cpf);
+        paciente = encontrado;
+        mostrarFormulario = true;
+    }
+
+    private void FecharFormulario()
+    {
+        paciente = new Paciente();
+        erroFormulario = null;
+        mostrarFormulario = false;
+    }
+
+    private async Task SalvarAsync()
+    {
+        salvando = true;
+        erroFormulario = null;
+        LimparMensagens();
+
+        try
+        {
+            var novo = paciente.Id == 0;
+            var erro = novo
+                ? await PacienteServico.CriarAsync(paciente)
+                : await PacienteServico.AtualizarAsync(paciente);
+
+            if (erro is not null)
+            {
+                erroFormulario = erro;
+                return;
+            }
+
+            mensagemSucesso = novo
+                ? "Paciente cadastrado com sucesso."
+                : "Paciente atualizado com sucesso.";
+
+            paciente = new Paciente();
+            mostrarFormulario = false;
+            await CarregarAsync();
+        }
+        catch (Exception)
+        {
+            erroFormulario = "Não foi possível salvar. Tente novamente.";
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+
+    private void PedirExclusao(Paciente p)
+    {
+        LimparMensagens();
+        pacienteParaExcluir = p;
+    }
+
+    private void CancelarExclusao()
+    {
+        pacienteParaExcluir = null;
+    }
+
+    private async Task ConfirmarExclusaoAsync()
+    {
+        if (pacienteParaExcluir is null)
+            return;
+
+        excluindo = true;
+        LimparMensagens();
+
+        try
+        {
+            var erro = await PacienteServico.ExcluirAsync(pacienteParaExcluir.Id);
+
+            if (erro is null)
+                mensagemSucesso = $"Paciente {pacienteParaExcluir.Nome} excluído.";
+            else
+                mensagemErro = erro;
+        }
+        catch (Exception)
+        {
+            mensagemErro = "Não foi possível excluir. Tente novamente.";
+        }
+        finally
+        {
+            excluindo = false;
+            pacienteParaExcluir = null;
+        }
+
+        await CarregarAsync();
+    }
+}

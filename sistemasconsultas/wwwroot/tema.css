@@ -1,0 +1,512 @@
+﻿/* =========================================================
+   Tema do Sistema de Consultas (verde), claro e escuro.
+   Base: Bootstrap 5.3 (usa data-bs-theme no <html>).
+   ========================================================= */
+
+/* ---------- Paleta ---------- */
+:root,
+[data-bs-theme="light"] {
+    --app-bg: #f2f7f5;
+    --app-surface: #ffffff;
+    --app-surface-2: #f5faf8;
+    --app-border: #d6e5de;
+    --app-text: #0f2a22;
+    --app-muted: #5b786d;
+    --app-primary: #047857;
+    --app-primary-hover: #065f46;
+    --app-primary-soft: rgba(4, 120, 87, 0.1);
+    --on-primary: #ffffff;
+    --app-shadow: 0 10px 30px rgba(15, 42, 34, 0.1);
+    --bs-primary-rgb: 4, 120, 87;
+    --bs-body-color-rgb: 15, 42, 34;
+    --bs-link-color-rgb: 4, 120, 87;
+    --bs-link-hover-color-rgb: 6, 95, 70;
+}
+
+[data-bs-theme="dark"] {
+    --app-bg: #07110e;
+    --app-surface: #0d1b17;
+    --app-surface-2: #11241f;
+    --app-border: #1c3a32;
+    --app-text: #e7f5ef;
+    --app-muted: #8bb0a4;
+    --app-primary: #10b981;
+    --app-primary-hover: #34d399;
+    --app-primary-soft: rgba(16, 185, 129, 0.14);
+    --on-primary: #04120d;
+    --app-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --bs-primary-rgb: 16, 185, 129;
+    --bs-body-color-rgb: 231, 245, 239;
+    --bs-link-color-rgb: 16, 185, 129;
+    --bs-link-hover-color-rgb: 52, 211, 153;
+}
+
+/* Liga a paleta às variáveis do Bootstrap */
+:root,
+[data-bs-theme] {
+    --bs-primary: var(--app-primary);
+    --bs-body-bg: var(--app-bg);
+    --bs-body-color: var(--app-text);
+    --bs-body-font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --bs-border-color: var(--app-border);
+    --bs-secondary-color: var(--app-muted);
+    --bs-secondary-bg: var(--app-surface-2);
+    --bs-tertiary-bg: var(--app-surface-2);
+    --bs-emphasis-color: var(--app-text);
+    --bs-link-color: var(--app-primary);
+    --bs-link-hover-color: var(--app-primary-hover);
+}
+
+/* ---------- Links e botões ---------- */
+a,
+.btn-link {
+    color: var(--app-primary);
+}
+
+    a:hover,
+    .btn-link:hover {
+        color: var(--app-primary-hover);
+    }
+
+.btn {
+    border-radius: 0.6rem;
+    font-weight: 600;
+}
+
+.btn-primary {
+    color: var(--on-primary);
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
+}
+
+    .btn-primary:hover,
+    .btn-primary:focus,
+    .btn-primary:active {
+        color: var(--on-primary);
+        background-color: var(--app-primary-hover);
+        border-color: var(--app-primary-hover);
+    }
+
+    .btn-primary:disabled {
+        color: var(--on-primary);
+        background-color: var(--app-primary);
+        border-color: var(--app-primary);
+    }
+
+.btn-outline-primary {
+    color: var(--app-primary);
+    background-color: transparent;
+    border-color: var(--app-primary);
+}
+
+    .btn-outline-primary:hover,
+    .btn-outline-primary:active {
+        color: var(--on-primary);
+        background-color: var(--app-primary);
+        border-color: var(--app-primary);
+    }
+
+.btn-light {
+    color: var(--app-text);
+    background-color: var(--app-surface-2);
+    border-color: var(--app-border);
+}
+
+    .btn-light:hover,
+    .btn-light:active {
+        color: var(--app-text);
+        background-color: var(--app-border);
+        border-color: var(--app-border);
+    }
+
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem var(--app-surface), 0 0 0 0.25rem var(--app-primary);
+}
+
+/* ---------- Cartões (o template usa .bg-light nos blocos) ---------- */
+.bg-light {
+    background-color: var(--app-surface) !important;
+    border: 1px solid var(--app-border);
+}
+
+    .bg-light.rounded {
+        border-radius: 1rem !important;
+    }
+
+.text-end > h6.mb-0 {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* ---------- Formulários ---------- */
+.form-control,
+.form-select {
+    background-color: var(--app-surface-2);
+    border-color: var(--app-border);
+    color: var(--app-text);
+    border-radius: 0.6rem;
+}
+
+    .form-control:focus,
+    .form-select:focus {
+        background-color: var(--app-surface-2);
+        color: var(--app-text);
+        border-color: var(--app-primary);
+    }
+
+    .form-control::placeholder {
+        color: var(--app-muted);
+        opacity: 0.8;
+    }
+
+.form-check-input:checked {
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
+}
+
+/* ---------- Tabelas ---------- */
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--app-text);
+    --bs-table-border-color: var(--app-border);
+}
+
+    .table > thead > tr > th {
+        color: var(--app-muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+/* ---------- Modais, alertas, selos ---------- */
+.modal-content {
+    background-color: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 1rem;
+    box-shadow: var(--app-shadow);
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--app-border);
+}
+
+.alert {
+    border-radius: 0.8rem;
+}
+
+.badge {
+    padding: 0.4em 0.75em;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+    .badge.bg-primary {
+        --bs-badge-color: var(--on-primary);
+    }
+
+.bg-primary.text-white {
+    color: var(--on-primary) !important;
+}
+
+/* ---------- Estrutura da página ---------- */
+.app-root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0 1.25rem;
+    background-color: var(--app-surface);
+    border-bottom: 1px solid var(--app-border);
+}
+
+.app-body {
+    flex: 1;
+    display: flex;
+    min-width: 0;
+}
+
+.app-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+    .app-main > .container-fluid {
+        padding-bottom: 1.5rem;
+    }
+
+.app-footer {
+    margin: auto 1.5rem 0;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--app-border);
+    color: var(--app-muted);
+    font-size: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* ---------- Marca ---------- */
+.app-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--app-text);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+}
+
+    .app-brand:hover {
+        color: var(--app-text);
+    }
+
+.app-brand-mark {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.65rem;
+    background-color: var(--app-primary);
+    color: var(--on-primary);
+    font-size: 1.1rem;
+}
+
+/* ---------- Barra lateral só com ícones ---------- */
+.app-sidebar {
+    position: sticky;
+    top: 64px;
+    align-self: flex-start;
+    width: 92px;
+    height: calc(100vh - 64px);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 0.5rem;
+    background-color: var(--app-surface);
+    border-right: 1px solid var(--app-border);
+    overflow-y: auto;
+}
+
+.app-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.7rem 0.25rem;
+    border-radius: 0.8rem;
+    color: var(--app-muted);
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+    .app-nav-item i {
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .app-nav-item:hover {
+        color: var(--app-text);
+        background-color: var(--app-primary-soft);
+    }
+
+    .app-nav-item.active {
+        color: var(--app-primary);
+        background-color: var(--app-primary-soft);
+    }
+
+/* ---------- Botões da barra superior ---------- */
+.app-icon-btn {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--app-surface-2);
+    border: 1px solid var(--app-border);
+    border-radius: 50%;
+    color: var(--app-text);
+}
+
+    .app-icon-btn:hover {
+        border-color: var(--app-primary);
+        color: var(--app-primary);
+    }
+
+/* Mostra o ícone do tema para o qual o clique vai trocar */
+.icone-para-claro,
+.icone-para-escuro {
+    display: none;
+}
+
+[data-bs-theme="dark"] .icone-para-claro {
+    display: inline;
+}
+
+[data-bs-theme="light"] .icone-para-escuro {
+    display: inline;
+}
+
+.app-avatar {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--app-primary);
+    color: var(--on-primary);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.app-avatar-lg {
+    width: 40px;
+    height: 40px;
+}
+
+.app-user-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.3rem 0.8rem 0.3rem 0.3rem;
+    background-color: var(--app-surface-2);
+    border: 1px solid var(--app-border);
+    border-radius: 999px;
+    color: var(--app-text);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+    .app-user-btn:hover {
+        border-color: var(--app-primary);
+    }
+
+.app-user-email {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+}
+
+.app-user-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    z-index: 1050;
+    width: 280px;
+    padding: 0.5rem;
+    background-color: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 0.9rem;
+    box-shadow: var(--app-shadow);
+}
+
+.app-user-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.6rem 0.8rem;
+    margin-bottom: 0.4rem;
+    border-bottom: 1px solid var(--app-border);
+}
+
+    .app-user-menu-header > div {
+        min-width: 0;
+    }
+
+.app-user-menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.6rem 0.7rem;
+    background: transparent;
+    border: 0;
+    border-radius: 0.6rem;
+    color: var(--app-text);
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+    .app-user-menu-item:hover {
+        background-color: var(--app-primary-soft);
+        color: var(--app-primary);
+    }
+
+/* ---------- Celular: o menu vira uma barra embaixo ---------- */
+/* ---------- Itens extras no fim do menu ---------- */
+.app-sidebar-fim {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--app-border);
+}
+
+@media (max-width: 575.98px) {
+    .app-sidebar {
+        width: 76px;
+        padding: 0.5rem 0.35rem;
+    }
+
+    .app-nav-item {
+        font-size: 0.68rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .menu-recolhido .app-sidebar {
+        display: none;
+    }
+}
+
+/* ---------- Aviso de erro do Blazor ---------- */
+#blazor-error-ui {
+    background: lightyellow;
+    color: #1a1a1a;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 2000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }

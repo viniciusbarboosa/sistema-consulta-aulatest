@@ -1,0 +1,373 @@
+﻿@page "/medicos"
+@using Microsoft.AspNetCore.Authorization
+@using sistemasconsultas.Data
+@using sistemasconsultas.Services
+@attribute [Authorize]
+@inject MedicoService MedicoServico
+
+<PageTitle>Médicos</PageTitle>
+
+<div class="container-fluid pt-4 px-4">
+    <div class="bg-light rounded p-4">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h5 class="mb-1">Médicos</h5>
+                <span class="text-muted">Cadastre e gerencie os seus médicos.</span>
+            </div>
+            <button type="button" class="btn btn-primary" @onclick="NovoMedico">
+                <i class="fa fa-plus me-2"></i>Novo médico
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(mensagemSucesso))
+        {
+            <div class="alert alert-success alert-dismissible" role="alert">
+                @mensagemSucesso
+                <button type="button" class="btn-close" aria-label="Fechar" @onclick="LimparMensagens"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                @mensagemErro
+                <button type="button" class="btn-close" aria-label="Fechar" @onclick="LimparMensagens"></button>
+            </div>
+        }
+
+        @if (medicos is null)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-3 mb-0 text-muted">Carregando...</p>
+            </div>
+        }
+        else if (medicos.Count == 0)
+        {
+            <div class="text-center py-5">
+                <i class="fa fa-user-md fa-3x text-primary mb-3"></i>
+                <h6>Nenhum médico cadastrado ainda</h6>
+                <p class="text-muted">Clique em "Novo médico" para cadastrar o primeiro.</p>
+            </div>
+        }
+        else
+        {
+            var lista = MedicosFiltrados.ToList();
+
+            <div class="row mb-3">
+                <div class="col-md-6 col-lg-4">
+                    <input type="search" class="form-control border-0" placeholder="Buscar por nome, CRM ou especialidade"
+                           @bind="busca" @bind:event="oninput" maxlength="200" />
+                </div>
+                <div class="col-md-6 col-lg-8 d-flex align-items-center justify-content-md-end mt-2 mt-md-0">
+                    <span class="text-muted small">@lista.Count de @medicos.Count médico(s)</span>
+                </div>
+            </div>
+
+            @if (lista.Count == 0)
+            {
+                <div class="text-center py-4 text-muted">Nenhum médico encontrado para essa busca.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Médico</th>
+                                <th scope="col">CRM</th>
+                                <th scope="col">Especialidade</th>
+                                <th scope="col">Telefone</th>
+                                <th scope="col" class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in lista)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold me-3" style="width: 36px; height: 36px;">
+                                                @Inicial(m.Nome)
+                                            </div>
+                                            <span>@m.Nome</span>
+                                        </div>
+                                    </td>
+                                    <td>@m.Crm</td>
+                                    <td>@m.Especialidade</td>
+                                    <td>@(string.IsNullOrWhiteSpace(m.Telefone) ? "-" : m.Telefone)</td>
+                                    <td class="text-end text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Editar" @onclick="() => EditarAsync(m.Id)">
+                                            <i class="fa fa-pencil-alt"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir" @onclick="() => PedirExclusao(m)">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@* ===== Modal: cadastrar / editar ===== *@
+@if (mostrarFormulario)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <EditForm Model="medico" OnValidSubmit="SalvarAsync">
+                    <DataAnnotationsValidator />
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fa fa-user-md text-primary me-2"></i>
+                            @(medico.Id == 0 ? "Novo médico" : "Editar médico")
+                        </h5>
+                        <button type="button" class="btn-close" aria-label="Fechar" @onclick="FecharFormulario"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(erroFormulario))
+                        {
+                            <div class="alert alert-danger" role="alert">@erroFormulario</div>
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <div class="form-floating">
+                                    <InputText id="nome" class="form-control" @bind-Value="medico.Nome" placeholder="Nome" maxlength="200" />
+                                    <label for="nome">Nome</label>
+                                </div>
+                                <ValidationMessage For="() => medico.Nome" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <InputText id="crm" class="form-control" @bind-Value="medico.Crm" placeholder="CRM" maxlength="200" />
+                                    <label for="crm">CRM</label>
+                                </div>
+                                <ValidationMessage For="() => medico.Crm" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-7">
+                                <div class="form-floating">
+                                    <InputText id="especialidade" class="form-control" @bind-Value="medico.Especialidade" placeholder="Especialidade" maxlength="200" />
+                                    <label for="especialidade">Especialidade</label>
+                                </div>
+                                <ValidationMessage For="() => medico.Especialidade" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-5">
+                                <div class="form-floating">
+                                    <InputText id="telefone" class="form-control" @bind-Value="medico.Telefone" placeholder="Telefone" maxlength="200" />
+                                    <label for="telefone">Telefone</label>
+                                </div>
+                                <ValidationMessage For="() => medico.Telefone" class="text-danger small" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" @onclick="FecharFormulario">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" disabled="@salvando">
+                            @if (salvando)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-check me-2"></i>
+                            }
+                            Salvar
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@* ===== Modal: confirmar exclusão ===== *@
+@if (medicoParaExcluir is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa fa-exclamation-triangle text-danger me-2"></i>Excluir médico
+                    </h5>
+                    <button type="button" class="btn-close" aria-label="Fechar" @onclick="CancelarExclusao"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="mb-1">Tem certeza que deseja excluir <strong>@medicoParaExcluir.Nome</strong>?</p>
+                    <p class="text-muted mb-0">Essa ação não pode ser desfeita.</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" @onclick="CancelarExclusao">Cancelar</button>
+                    <button type="button" class="btn btn-danger" disabled="@excluindo" @onclick="ConfirmarExclusaoAsync">
+                        <i class="fa fa-trash me-2"></i>Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Medico>? medicos;
+    private Medico medico = new();
+    private Medico? medicoParaExcluir;
+    private bool mostrarFormulario;
+    private bool salvando;
+    private bool excluindo;
+    private string busca = "";
+    private string? mensagemSucesso;
+    private string? mensagemErro;
+    private string? erroFormulario;
+
+    private IEnumerable<Medico> MedicosFiltrados =>
+        string.IsNullOrWhiteSpace(busca)
+            ? medicos!
+            : medicos!.Where(m =>
+                m.Nome.Contains(busca, StringComparison.OrdinalIgnoreCase) ||
+                m.Crm.Contains(busca, StringComparison.OrdinalIgnoreCase) ||
+                m.Especialidade.Contains(busca, StringComparison.OrdinalIgnoreCase));
+
+    private static string Inicial(string nome) =>
+        string.IsNullOrWhiteSpace(nome) ? "?" : char.ToUpper(nome.Trim()[0]).ToString();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarAsync();
+    }
+
+    private async Task CarregarAsync()
+    {
+        medicos = await MedicoServico.ListarAsync();
+    }
+
+    private void LimparMensagens()
+    {
+        mensagemSucesso = null;
+        mensagemErro = null;
+    }
+
+    private void NovoMedico()
+    {
+        LimparMensagens();
+        erroFormulario = null;
+        medico = new Medico();
+        mostrarFormulario = true;
+    }
+
+    private async Task EditarAsync(int id)
+    {
+        LimparMensagens();
+        erroFormulario = null;
+
+        var encontrado = await MedicoServico.ObterAsync(id);
+        if (encontrado is null)
+        {
+            mensagemErro = "Médico não encontrado.";
+            await CarregarAsync();
+            return;
+        }
+
+        medico = encontrado;
+        mostrarFormulario = true;
+    }
+
+    private void FecharFormulario()
+    {
+        medico = new Medico();
+        erroFormulario = null;
+        mostrarFormulario = false;
+    }
+
+    private async Task SalvarAsync()
+    {
+        salvando = true;
+        erroFormulario = null;
+        LimparMensagens();
+
+        try
+        {
+            var novo = medico.Id == 0;
+            var erro = novo
+                ? await MedicoServico.CriarAsync(medico)
+                : await MedicoServico.AtualizarAsync(medico);
+
+            if (erro is not null)
+            {
+                erroFormulario = erro;
+                return;
+            }
+
+            mensagemSucesso = novo
+                ? "Médico cadastrado com sucesso."
+                : "Médico atualizado com sucesso.";
+
+            medico = new Medico();
+            mostrarFormulario = false;
+            await CarregarAsync();
+        }
+        catch (Exception)
+        {
+            erroFormulario = "Não foi possível salvar. Tente novamente.";
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+
+    private void PedirExclusao(Medico m)
+    {
+        LimparMensagens();
+        medicoParaExcluir = m;
+    }
+
+    private void CancelarExclusao()
+    {
+        medicoParaExcluir = null;
+    }
+
+    private async Task ConfirmarExclusaoAsync()
+    {
+        if (medicoParaExcluir is null)
+            return;
+
+        excluindo = true;
+        LimparMensagens();
+
+        try
+        {
+            var erro = await MedicoServico.ExcluirAsync(medicoParaExcluir.Id);
+
+            if (erro is null)
+                mensagemSucesso = $"Médico {medicoParaExcluir.Nome} excluído.";
+            else
+                mensagemErro = erro;
+        }
+        catch (Exception)
+        {
+            mensagemErro = "Não foi possível excluir. Tente novamente.";
+        }
+        finally
+        {
+            excluindo = false;
+            medicoParaExcluir = null;
+        }
+
+        await CarregarAsync();
+    }
+}

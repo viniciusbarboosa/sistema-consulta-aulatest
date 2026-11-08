@@ -1,0 +1,34 @@
+# ===== Visual Studio =====
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ===== Compilação =====
+bin/
+obj/
+publish/
+*.log
+
+# ===== Pacotes =====
+packages/
+*.nupkg
+node_modules/
+
+# ===== Segredos e arquivos locais =====
+.env
+.env.*
+appsettings.Production.json
+secrets.json
+
+# ===== Anexos de teste (no servidor ficam num volume do Docker) =====
+uploads/
+
+# ===== Pacote de envio ao servidor =====
+*.tar.gz
+*.zip
+
+# ===== Sistema operacional =====
+Thumbs.db
+.DS_Store
